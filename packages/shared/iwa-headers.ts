@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Headers, PluginOptions } from './types';
+import { Headers, IbSignPluginOptions } from './types';
 
 export const coep: Headers = Object.freeze({
   'cross-origin-embedder-policy': 'require-corp',
@@ -89,11 +89,9 @@ export function checkAndAddIwaHeaders(headers: Headers) {
   // TODO: Parse and check strictness of `Content-Security-Policy`.
 }
 
-export function maybeSetIwaDefaults(opts: PluginOptions) {
-  if (!opts.integrityBlockSign) {
-    return;
-  }
-
+// This checks that for IWAs the headers are correct and adds them if they are
+// missing.
+export function maybeSetIwaHeaderDefaults(opts: IbSignPluginOptions) {
   // Note that `undefined` is ignored on purpose.
   if (opts.integrityBlockSign.isIwa === false) {
     return;
@@ -110,5 +108,7 @@ export function maybeSetIwaDefaults(opts: PluginOptions) {
       )}`
     );
     opts.headerOverride = iwaHeaderDefaults;
+  } else if (typeof opts.headerOverride === 'object') {
+    checkAndAddIwaHeaders(opts.headerOverride);
   }
 }

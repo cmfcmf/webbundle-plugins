@@ -21,17 +21,97 @@ export interface Headers {
   [key: string]: string;
 }
 
-interface IntegrityBlockSignOptions {
+interface IbSignOptionsWithKey {
   key: KeyObject;
   isIwa?: boolean;
 }
 
-export interface PluginOptions {
-  baseURL: string;
-  primaryURL?: string;
+// TODO(sonkkeli): Move to the follow-up PR.
+// interface IbSignOptionsWithStrategy {
+//   strategy: ISigningStrategy;
+//   key?: KeyObject;
+//   isIwa?: boolean;
+// }
+
+interface PluginOptionsBase {
   static: { dir: string; baseURL?: string };
+  baseURL?: string;
+  output?: string;
+  formatVersion?: FormatVersion;
+  headerOverride?: (() => Headers) | Headers;
+}
+
+interface ValidPluginOptionsBase extends PluginOptionsBase {
+  baseURL: string;
   output: string;
   formatVersion: FormatVersion;
-  integrityBlockSign?: IntegrityBlockSignOptions;
-  headerOverride?: (() => Headers) | Headers;
+}
+
+export interface NonIbSignPluginOptions extends PluginOptionsBase {
+  primaryURL?: string;
+}
+
+export interface ValidNonIbSignPluginOptions extends ValidPluginOptionsBase {
+  primaryURL?: string;
+}
+
+// As TypeScript is only able to check that the wanted properties exist, but not
+// that unwanted don't exist, we need to keep track of the unwanted properties
+// manually to make sure that possible existence of them is not ignored nor
+// incorrectly typed.
+const IB_SIGN_UNWANTED_PROPS = ['primaryURL'];
+const NON_IB_SIGN_UNWANTED_PROPS = ['integrityBlockSign'];
+
+export interface IbSignPluginOptions extends PluginOptionsBase {
+  integrityBlockSign: IbSignOptionsWithKey;
+}
+
+export interface ValidIbSignPluginOptions extends ValidPluginOptionsBase {
+  // TODO(sonkkeli): Replace with IbSignOptionsWithStrategy in the follow-up PR.
+  integrityBlockSign: IbSignOptionsWithKey;
+}
+
+export type PluginOptions = NonIbSignPluginOptions | IbSignPluginOptions;
+
+export type ValidPluginOptions =
+  | ValidNonIbSignPluginOptions
+  | ValidIbSignPluginOptions;
+
+export function isIbSignPluginOptions(
+  opts: PluginOptions
+): opts is IbSignPluginOptions {
+  return (opts as IbSignPluginOptions).integrityBlockSign !== undefined;
+}
+
+export function isValidNonIbSignPluginOptions(
+  opts: PluginOptions | ValidPluginOptions
+): opts is ValidNonIbSignPluginOptions {
+  if (NON_IB_SIGN_UNWANTED_PROPS.every((o) => o in opts)) {
+    return false;
+  }
+
+  const forceTypedObject = opts as ValidNonIbSignPluginOptions;
+  return (
+    forceTypedObject.baseURL !== undefined &&
+    forceTypedObject.output !== undefined &&
+    forceTypedObject.formatVersion !== undefined
+  );
+}
+
+export function isValidIbSignPluginOptions(
+  opts: PluginOptions | ValidPluginOptions
+): opts is ValidIbSignPluginOptions {
+  if (IB_SIGN_UNWANTED_PROPS.every((o) => o in opts)) {
+    return false;
+  }
+
+  const forceTypedObject = opts as ValidIbSignPluginOptions;
+  return (
+    forceTypedObject.integrityBlockSign !== undefined &&
+    forceTypedObject.baseURL !== undefined &&
+    forceTypedObject.output !== undefined &&
+    forceTypedObject.formatVersion !== undefined &&
+    // TODO(sonkkeli): Replace with integrityBlockSign.strategy in the follow-up PR.
+    forceTypedObject.integrityBlockSign.key !== undefined
+  );
 }
