@@ -19,14 +19,12 @@ import { Plugin, OutputOptions } from 'rollup';
 import {
   addAsset,
   addFilesRecursively,
-  getValidatedOptionsWithDefaults,
   getSignedWebBundle,
 } from '../../shared/utils';
 import {
+  getValidatedOptionsWithDefaults,
   PluginOptions,
-  isValidIbSignPluginOptions,
-  isValidNonIbSignPluginOptions,
-} from '../../shared/types';
+} from '../../shared/options';
 
 const consoleLogColor = { green: '\x1b[32m', reset: '\x1b[0m' };
 function infoLogger(text: string): void {
@@ -49,14 +47,14 @@ export default function wbnOutputPlugin(
 
     async generateBundle(_: OutputOptions, bundle): Promise<void> {
       const builder = new BundleBuilder(opts.formatVersion);
-      if (isValidNonIbSignPluginOptions(opts) && opts.primaryURL) {
+      if ('primaryURL' in opts && opts.primaryURL) {
         builder.setPrimaryURL(opts.primaryURL);
       }
 
       if (opts.static) {
         addFilesRecursively(
           builder,
-          opts.static.baseURL || opts.baseURL,
+          opts.static.baseURL ?? opts.baseURL,
           opts.static.dir,
           opts
         );
@@ -76,7 +74,7 @@ export default function wbnOutputPlugin(
       }
 
       let webBundle = builder.createBundle();
-      if (isValidIbSignPluginOptions(opts)) {
+      if ('integrityBlockSign' in opts) {
         webBundle = getSignedWebBundle(webBundle, opts, infoLogger);
       }
 

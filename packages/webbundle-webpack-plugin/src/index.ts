@@ -19,15 +19,13 @@ import { BundleBuilder } from 'wbn';
 import {
   addAsset,
   addFilesRecursively,
-  getValidatedOptionsWithDefaults,
   getSignedWebBundle,
 } from '../../shared/utils';
 import {
-  PluginOptions,
+  getValidatedOptionsWithDefaults,
   ValidPluginOptions,
-  isValidIbSignPluginOptions,
-  isValidNonIbSignPluginOptions,
-} from '../../shared/types';
+  PluginOptions,
+} from '../../shared/options';
 
 const PLUGIN_NAME = 'webbundle-webpack-plugin';
 
@@ -46,13 +44,13 @@ export class WebBundlePlugin implements WebpackPluginInstance {
   process = (compilation: Compilation) => {
     const opts = this.validOpts;
     const builder = new BundleBuilder(opts.formatVersion);
-    if (isValidNonIbSignPluginOptions(opts) && opts.primaryURL) {
+    if ('primaryURL' in opts && opts.primaryURL) {
       builder.setPrimaryURL(opts.primaryURL);
     }
     if (opts.static) {
       addFilesRecursively(
         builder,
-        opts.static.baseURL || opts.baseURL,
+        opts.static.baseURL ?? opts.baseURL,
         opts.static.dir,
         opts
       );
@@ -81,7 +79,7 @@ export class WebBundlePlugin implements WebpackPluginInstance {
         : (str: string) => console.log(str);
 
     let webBundle = builder.createBundle();
-    if (isValidIbSignPluginOptions(opts)) {
+    if ('integrityBlockSign' in opts) {
       webBundle = getSignedWebBundle(webBundle, opts, infoLogger);
     }
 

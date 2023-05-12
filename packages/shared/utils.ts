@@ -19,18 +19,8 @@ import * as path from 'path';
 import mime from 'mime';
 import { combineHeadersForUrl, BundleBuilder } from 'wbn';
 import { IntegrityBlockSigner, WebBundleId } from 'wbn-sign';
-import {
-  checkAndAddIwaHeaders,
-  maybeSetIwaHeaderDefaults,
-} from './iwa-headers';
-import {
-  PluginOptions,
-  ValidIbSignPluginOptions,
-  ValidPluginOptions,
-  isIbSignPluginOptions,
-  isValidIbSignPluginOptions,
-  isValidNonIbSignPluginOptions,
-} from './types';
+import { checkAndAddIwaHeaders } from './iwa-headers';
+import { IbSignParsedPluginOptions, ValidPluginOptions } from './options';
 
 // If the file name is 'index.html', create an entry for both baseURL/dir/
 // and baseURL/dir/index.html which redirects to the aforementioned. Otherwise
@@ -48,7 +38,7 @@ export function addAsset(
   // For object type, the IWA headers have already been check in constructor.
   const shouldCheckIwaHeaders =
     typeof pluginOptions.headerOverride === 'function' &&
-    isValidIbSignPluginOptions(pluginOptions) &&
+    'integrityBlockSign' in pluginOptions &&
     pluginOptions.integrityBlockSign.isIwa;
 
   if (isIndexHtmlFile) {
@@ -123,48 +113,18 @@ export function addFilesRecursively(
   }
 }
 
-export function getValidatedOptionsWithDefaults(
-  opts: PluginOptions
-): ValidPluginOptions {
-  // Set the default values for options.
-  opts = {
-    ...{ formatVersion: 'b2', output: 'out.wbn', baseURL: '' },
-    ...opts,
-  };
-
-  if (isValidNonIbSignPluginOptions(opts)) {
-    return opts;
-  }
-
-  if (isIbSignPluginOptions(opts)) {
-    maybeSetIwaHeaderDefaults(opts);
-    if (isValidIbSignPluginOptions(opts)) {
-      return opts;
-    }
-  }
-
-  throw new Error('Options are malformatted.');
-}
-
 export function getSignedWebBundle(
   webBundle: Uint8Array,
-  opts: ValidIbSignPluginOptions,
+  opts: IbSignParsedPluginOptions,
   infoLogger: (str: string) => void
 ): Uint8Array {
-  const expectedOrigin = new WebBundleId(
-    opts.integrityBlockSign.key
-  ).serializeWithIsolatedWebAppOrigin();
-
-  if (opts.baseURL !== '' && opts.baseURL !== expectedOrigin) {
-    throw new Error(
-      `The provided "baseURL" option (${opts.baseURL}) does not match the expected base URL (${expectedOrigin}), which is derived from the provided private key`
-    );
-  }
-
   const { signedWebBundle } = new IntegrityBlockSigner(webBundle, {
     key: opts.integrityBlockSign.key,
   }).sign();
 
-  infoLogger(expectedOrigin);
+  const origin = new WebBundleId(
+    opts.integrityBlockSign.key
+  ).serializeWithIsolatedWebAppOrigin();
+  infoLogger(origin);
   return signedWebBundle;
 }

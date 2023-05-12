@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Headers, IbSignPluginOptions } from './types';
+import { Headers } from './options';
 
 export const coep: Headers = Object.freeze({
   'cross-origin-embedder-policy': 'require-corp',
@@ -87,28 +87,4 @@ export function checkAndAddIwaHeaders(headers: Headers) {
   }
 
   // TODO: Parse and check strictness of `Content-Security-Policy`.
-}
-
-// This checks that for IWAs the headers are correct and adds them if they are
-// missing.
-export function maybeSetIwaHeaderDefaults(opts: IbSignPluginOptions) {
-  // Note that `undefined` is ignored on purpose.
-  if (opts.integrityBlockSign.isIwa === false) {
-    return;
-  }
-
-  // `isIwa` is defaulting to `true` if not provided as currently there is no
-  // other use case for integrityBlockSign outside of IWAs.
-  opts.integrityBlockSign.isIwa = true;
-
-  if (opts.headerOverride === undefined) {
-    console.info(
-      `Setting the empty headerOverrides to IWA defaults. To bundle a non-IWA, set \`integrityBlockSign { isIwa: false }\` in your plugin configs. Defaults are set to:\n ${JSON.stringify(
-        iwaHeaderDefaults
-      )}`
-    );
-    opts.headerOverride = iwaHeaderDefaults;
-  } else if (typeof opts.headerOverride === 'object') {
-    checkAndAddIwaHeaders(opts.headerOverride);
-  }
 }
